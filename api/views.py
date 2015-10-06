@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.views.generic import View
 from django.views.generic.base import ContextMixin
-from api.storage import Storage, Graph, WarehouseGraph
+from api.storage import Storage, WarehouseGraph
 
 
 class AjaxRequiredMixin(object):
@@ -39,10 +39,6 @@ class ProductsSetView(JsonView):
         products = self.request.GET.getlist('products[]')
         quantities = self.request.GET.getlist('quantities[]')
 
-        products = ['570E77', 'E1D9F2']
-
-        quantities = [120, 700]
-
         products_dict = {x: y for x, y in zip(products, quantities)}
 
         connections = WarehouseGraph(
@@ -50,12 +46,5 @@ class ProductsSetView(JsonView):
             products_dict
         )
         connections.import_from_file("api/connections.csv")
-        # connections.items = {
-        #     'A': {'E': 1, 'B': 3},
-        #     'B': {'A': 3, 'C': 4, 'D': 2},
-        #     'C': {'B': 4, 'D': 8, 'E': 2},
-        #     'D': {'B': 2, 'C': 8},
-        #     'E': {'A': 1, 'C': 2},
-        # }
 
         return connections.process(context.get('warehouse'))

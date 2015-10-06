@@ -170,11 +170,10 @@ class WarehouseGraph(Graph):
         """
         Return the maximum delivery time, for the farthest vertex, all others will be lesser than that
         """
-        if not self.insufficient:
-            return {'delivery_time': max(self.visited_vertices.values())}
-        else:
+        if self.insufficient:
             return self.error('Delivery impossible for the current warehouse stocks.')
-
+        else:
+            return {'delivery_time': max(self.visited_vertices.values())}
 
     def process_vertex(self, vertex, distance=0):
         """
