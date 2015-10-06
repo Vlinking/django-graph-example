@@ -44,11 +44,7 @@ class Graph(BasicContainer):
     """
     Class which implements weighted Graphs via a Facade design pattern
     """
-    def __init__(self, storage, products):
-        super(Graph, self).__init__()
-        self.products = products
-        self.gathered_products = {key: 0 for (key, _) in products}
-        self.storage = storage
+    LIMIT_ACHIEVED = 1
 
     def add_item(self, index, item_id, value):
         """
@@ -117,7 +113,7 @@ class Graph(BasicContainer):
         if next_vertex:
             self.process_vertex(next_vertex, new_distance)
         else:
-            return None
+            return self.LIMIT_ACHIEVED
 
     def process(self, vertex):
         """
@@ -127,6 +123,68 @@ class Graph(BasicContainer):
         start = self.items.get(vertex, None)
         if start:
             self.process_vertex(vertex)
-            return self.visited_vertices
+            return self.return_data()
         else:
             return self.error('Start vertex does not exist.')
+
+    def return_data(self):
+        """
+        Simple wrapper
+        """
+        return self.visited_vertices
+
+
+class WarehouseGraph(Graph):
+    """
+    Class implementing the connections and stocks of warehouses directly
+    """
+    def __init__(self, storage, products):
+        """
+        Initialize all extraordinary warehouse data
+        """
+        super(WarehouseGraph, self).__init__()
+        self.order = products
+        self.gathered_products = {key: 0 for key in products.iterkeys()}
+        self.storage = storage
+        self.insufficient = False
+
+    def order_fulfilled(self):
+        """
+        Check if we gathered enough
+        """
+        for key, value in self.gathered_products.items():
+            if self.order[key] > value:
+                return False
+        return True
+
+    def update_gathered_products(self, warehouse):
+        """
+        Get products from the warehouse we're visiting
+        """
+        for product, value in self.order.items():
+            self.gathered_products[product] = self.gathered_products[product] +\
+                                              min(self.order[product] - self.gathered_products[product],
+                                                  self.storage.get_product_quantity(warehouse, product))
+
+    def return_data(self):
+        """
+        Return the maximum delivery time, for the farthest vertex, all others will be lesser than that
+        """
+        if not self.insufficient:
+            return {'delivery_time': max(self.visited_vertices.values())}
+        else:
+            return self.error('Delivery impossible for the current warehouse stocks.')
+
+
+    def process_vertex(self, vertex, distance=0):
+        """
+        Process vertexes along extra stop conditions: on order fulfillment and on vertex exhaustion
+        """
+        if not self.order_fulfilled():
+            self.update_gathered_products(vertex)
+            still_searching = super(WarehouseGraph, self).process_vertex(vertex, distance)
+            if still_searching == self.LIMIT_ACHIEVED:
+                self.insufficient = True
+                return self.return_data()
+        else:
+            return self.return_data()
