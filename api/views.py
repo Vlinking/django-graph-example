@@ -64,7 +64,17 @@ class Graph(BasicContainer):
         return {'error': message}
 
     def exclude_visited_vertices(self, dict):
-        return {key: value for key, value in dict.items() if key not in self.visited_vertices.keys()}
+        if dict:
+            return {key: value for key, value in dict.items() if key not in self.visited_vertices.keys()}
+        else:
+            return {}
+
+    def NestedDictMin(self, dict):
+        s = [(k, min(d.iteritems(), key=lambda a:a[1])) for k, d in dict.iteritems()]
+        return min(s, key=lambda a:a[1][1])
+
+    def strip_dict(self, dict):
+        return [x for x in dict.itervalues()]
 
     def get_closest_next_vertex(self, vertex, distance):
         nearest = {}
@@ -72,15 +82,28 @@ class Graph(BasicContainer):
             neighbours = self.exclude_visited_vertices(self.items.get(key))
             if neighbours:
                 closest = min(neighbours, key=neighbours.get)
-                nearest[closest] = neighbours[closest] + value
-        closest_next_vertex = min(nearest, key=nearest.get)
-        return closest_next_vertex, self.items[vertex][closest_next_vertex] + distance
+                if nearest.get(closest, None):
+                    if self.strip_dict(nearest.get(closest))[0] > neighbours[closest] + value:
+                        nearest[closest] = {key: neighbours[closest] + value}
+                else:
+                    nearest[closest] = {key: neighbours[closest] + value}
+        if nearest:
+            print nearest
+            closest_next = self.NestedDictMin(nearest)
+            closest_next_vertex = closest_next[0]
+        else:
+            return None, None
+
+        return closest_next_vertex, self.items[closest_next[1][0]][closest_next_vertex] + self.visited_vertices[closest_next[1][0]]
 
     def process_vertex(self, vertex, distance=0):
-        print vertex
+        # print vertex
         self.visited_vertices.update({vertex: distance})
         next_vertex, new_distance = self.get_closest_next_vertex(vertex, distance)
-        self.process_vertex(next_vertex, new_distance)
+        if next_vertex:
+            self.process_vertex(next_vertex, new_distance)
+        else:
+            return None
 
     def calculate_gathering_time(self, warehouse):
         """
